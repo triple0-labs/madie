@@ -5,10 +5,12 @@ async function main() {
   try {
     const extensionDevelopmentPath = path.resolve(__dirname, "../../");
     const extensionTestsPath = path.resolve(__dirname, "./suite/index");
+    const vscodeExecutablePath = process.env.VSCODE_TEST_VSCODE_PATH?.trim();
 
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
+      ...(vscodeExecutablePath ? { vscodeExecutablePath } : {}),
     });
   } catch (err) {
     console.error("Failed to run tests:", err);

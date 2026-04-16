@@ -2,8 +2,9 @@
   "name": "madie",
   "displayName": "Madie",
   "description": "A customizable markdown text editor that adapts to your theme",
-  "version": "0.1.0",
-  "publisher": "madie-dev",
+  "icon": "images/icon.png",
+  "version": "0.1.1",
+  "publisher": "000geid",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -17,7 +18,7 @@
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Editors"
+    "Other"
   ],
   "keywords": [
     "markdown",
@@ -43,8 +44,8 @@
       "properties": {
         "madie.fontFamily": {
           "type": "string",
-          "default": "",
-          "description": "Font family for the editor. Leave empty to use VSCode's configured editor font."
+          "default": "Helvetica",
+          "description": "Font family for the editor."
         },
         "madie.fontSize": {
           "type": "number",
@@ -74,6 +75,7 @@
   },
   "dependencies": {
     "marked": "^18.0.0",
+    "mermaid": "^11.14.0",
     "turndown": "^7.2.4"
   }
 }

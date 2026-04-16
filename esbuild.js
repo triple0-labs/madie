@@ -41,7 +41,7 @@ const webviewPlugin = {
         entryPoints: [entryPoint],
         bundle: true,
         write: false,
-        format: "iife",
+        format: "esm",
         target: "es2020",
         minify: isProduction,
       });

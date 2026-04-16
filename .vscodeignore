@@ -8,3 +8,5 @@ tsconfig.json
 test/tsconfig.json
 .gitignore
 **/*.map
+sample.md
+dist/test/**

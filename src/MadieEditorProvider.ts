@@ -95,7 +95,7 @@ export class MadieEditorProvider implements vscode.CustomTextEditorProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; worker-src blob:;">
   <title>Madie</title>
   <style nonce="${nonce}">
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -134,6 +134,32 @@ export class MadieEditorProvider implements vscode.CustomTextEditorProvider {
       border-radius: 3px;
       font-size: 12px;
       font-family: inherit;
+    }
+
+    #toolbar button {
+      background-color: var(--vscode-button-secondaryBackground, var(--vscode-input-background));
+      color: var(--vscode-button-secondaryForeground, var(--vscode-input-foreground));
+      border: 1px solid var(--vscode-input-border, var(--vscode-editorWidget-border));
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    #toolbar button:hover {
+      background-color: var(--vscode-button-secondaryHoverBackground, var(--vscode-input-background));
+    }
+
+    #toolbar button:focus,
+    #toolbar button[aria-pressed="true"] {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: 1px;
+    }
+
+    #toolbar button[aria-pressed="true"] {
+      background-color: var(--vscode-button-background, var(--vscode-input-background));
+      color: var(--vscode-button-foreground, var(--vscode-input-foreground));
     }
 
     #toolbar select:focus,
@@ -197,6 +223,144 @@ export class MadieEditorProvider implements vscode.CustomTextEditorProvider {
       font-size: 0.9em;
     }
 
+    #editor pre code.language-mermaid {
+      display: block;
+      white-space: pre-wrap;
+    }
+
+    #editor .mermaid-preview {
+      position: relative;
+      background-color: var(--vscode-editorWidget-background);
+      border: 1px solid var(--vscode-editorWidget-border);
+      border-radius: 4px;
+      margin-bottom: 0.8em;
+      height: 340px;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+    }
+
+    #editor .mermaid-preview.is-dragging {
+      cursor: grabbing;
+    }
+
+    #editor .mermaid-preview svg {
+      display: block;
+      transform-origin: 0 0;
+      background: transparent;
+    }
+
+    #editor .mermaid-preview svg > rect[id$="-background"],
+    #editor .mermaid-preview svg > rect:first-child {
+      fill: transparent !important;
+    }
+
+    #editor .mermaid-preview .mermaid-error {
+      padding: 12px 16px;
+      color: var(--vscode-errorForeground);
+      font-size: 0.9em;
+      cursor: default;
+    }
+
+    #editor .mermaid-toolbar {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      display: flex;
+      gap: 4px;
+      z-index: 10;
+    }
+
+    #editor .mermaid-toolbar button {
+      background-color: var(--vscode-button-secondaryBackground, var(--vscode-input-background));
+      color: var(--vscode-button-secondaryForeground, var(--vscode-input-foreground));
+      border: 1px solid var(--vscode-input-border, var(--vscode-editorWidget-border));
+      border-radius: 3px;
+      padding: 2px 7px;
+      font-size: 13px;
+      line-height: 1.4;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+
+    #editor .mermaid-toolbar button:hover {
+      opacity: 1;
+    }
+
+    /* Diagram modal */
+    .mermaid-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.65);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mermaid-modal-dialog {
+      background-color: var(--vscode-editor-background);
+      border: 1px solid var(--vscode-editorWidget-border);
+      border-radius: 6px;
+      width: 92vw;
+      height: 88vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .mermaid-modal-header {
+      display: flex;
+      justify-content: flex-end;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--vscode-editorWidget-border);
+      flex-shrink: 0;
+    }
+
+    .mermaid-modal-close {
+      background: none;
+      border: none;
+      color: var(--vscode-editor-foreground);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 3px;
+      opacity: 0.7;
+    }
+
+    .mermaid-modal-close:hover {
+      opacity: 1;
+      background-color: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,0.15));
+    }
+
+    .mermaid-modal-content {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .mermaid-modal-content.is-dragging {
+      cursor: grabbing;
+    }
+
+    .mermaid-modal-content svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      max-width: none;
+      max-height: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Diagram view modes */
+    #editor.diagram-view-code .mermaid-preview { display: none; }
+    #editor.diagram-view-diagram pre:has(code.language-mermaid) { display: none; }
+
     #editor blockquote {
       border-left: 3px solid var(--vscode-textLink-foreground);
       margin: 0 0 0.8em 0;
@@ -246,11 +410,28 @@ export class MadieEditorProvider implements vscode.CustomTextEditorProvider {
     </select>
     <label for="size-picker">Size</label>
     <input id="size-picker" type="number" min="8" max="72" value="${fontSize}" />
+    <button id="bold-button" type="button" aria-label="Bold"><strong>B</strong></button>
+    <button id="italic-button" type="button" aria-label="Italic"><em>I</em></button>
+    <button id="strike-button" type="button" aria-label="Strikethrough"><del>S</del></button>
+    <label for="heading-picker">Heading</label>
+    <select id="heading-picker">
+      <option value="p">Paragraph</option>
+      <option value="h1">H1</option>
+      <option value="h2">H2</option>
+      <option value="h3">H3</option>
+      <option value="h4">H4</option>
+    </select>
+    <label for="diagram-view-picker">Diagrams</label>
+    <select id="diagram-view-picker">
+      <option value="both">Code + diagram</option>
+      <option value="code">Code only</option>
+      <option value="diagram">Diagram only</option>
+    </select>
   </div>
   <div id="editor" contenteditable="true" spellcheck="true"></div>
 
   <script nonce="${nonce}">window.__madie__=${JSON.stringify({ text: initialText, fontFamily, fontSize })};</script>
-  <script nonce="${nonce}">${webviewEditor}</script>
+  <script type="module" nonce="${nonce}">${webviewEditor}</script>
 </body>
 </html>`;
   }
@@ -258,10 +439,10 @@ export class MadieEditorProvider implements vscode.CustomTextEditorProvider {
 
 function getSystemFonts(): string[] {
   return [
+    "Helvetica",
     "Arial",
     "Courier New",
     "Georgia",
-    "Helvetica",
     "Menlo",
     "Monaco",
     "Consolas",
