@@ -1,0 +1,79 @@
+{
+  "name": "madie",
+  "displayName": "Madie",
+  "description": "A customizable markdown text editor that adapts to your theme",
+  "version": "0.1.0",
+  "publisher": "madie-dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/triple0-labs/madie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/triple0-labs/madie/issues"
+  },
+  "homepage": "https://github.com/triple0-labs/madie#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Editors"
+  ],
+  "keywords": [
+    "markdown",
+    "editor",
+    "custom"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "madie.editor",
+        "displayName": "Madie Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "Madie",
+      "properties": {
+        "madie.fontFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Font family for the editor. Leave empty to use VSCode's configured editor font."
+        },
+        "madie.fontSize": {
+          "type": "number",
+          "default": 14,
+          "description": "Font size in pixels for the editor."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "lint": "tsc --noEmit",
+    "test": "npm run build && npx tsc -p test/tsconfig.json && node ./dist/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.11.0",
+    "@types/turndown": "^5.0.6",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.0",
+    "esbuild": "^0.20.0",
+    "glob": "^13.0.6",
+    "mocha": "^11.7.5",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "marked": "^18.0.0",
+    "turndown": "^7.2.4"
+  }
+}
