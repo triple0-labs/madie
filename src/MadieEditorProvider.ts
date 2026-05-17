@@ -176,6 +176,88 @@ export class MadieEditorProvider implements vscode.CustomTextEditorProvider {
       line-height: 1.7;
     }
 
+    #find-widget {
+      position: fixed;
+      top: 44px;
+      right: 18px;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      background-color: var(--vscode-editorWidget-background);
+      color: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground));
+      border: 1px solid var(--vscode-editorWidget-border);
+      border-radius: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
+      font-size: 12px;
+    }
+
+    #find-widget.is-open {
+      display: flex;
+    }
+
+    #find-input {
+      width: 220px;
+      min-width: 120px;
+      background-color: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border, var(--vscode-editorWidget-border));
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: inherit;
+    }
+
+    #find-input:focus {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: 1px;
+    }
+
+    #find-count {
+      min-width: 48px;
+      color: var(--vscode-descriptionForeground);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    #find-widget button {
+      width: 24px;
+      height: 24px;
+      background-color: var(--vscode-button-secondaryBackground, var(--vscode-input-background));
+      color: var(--vscode-button-secondaryForeground, var(--vscode-input-foreground));
+      border: 1px solid var(--vscode-input-border, var(--vscode-editorWidget-border));
+      border-radius: 3px;
+      font-size: 13px;
+      line-height: 1;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    #find-widget button:hover {
+      background-color: var(--vscode-button-secondaryHoverBackground, var(--vscode-input-background));
+    }
+
+    #find-widget button:focus {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: 1px;
+    }
+
+    #find-widget button:disabled {
+      cursor: default;
+      opacity: 0.45;
+    }
+
+    ::highlight(madie-search-match) {
+      background-color: var(--vscode-editor-findMatchHighlightBackground);
+      color: var(--vscode-editor-foreground);
+    }
+
+    ::highlight(madie-search-current) {
+      background-color: var(--vscode-editor-findMatchBackground);
+      color: var(--vscode-editor-foreground);
+    }
+
     /* Markdown element styles using VS Code theme variables */
     #editor h1, #editor h2, #editor h3,
     #editor h4, #editor h5, #editor h6 {
@@ -427,6 +509,13 @@ export class MadieEditorProvider implements vscode.CustomTextEditorProvider {
       <option value="code">Code only</option>
       <option value="diagram">Diagram only</option>
     </select>
+  </div>
+  <div id="find-widget" role="search" aria-label="Find in document">
+    <input id="find-input" type="text" placeholder="Find" aria-label="Find text" />
+    <span id="find-count" aria-live="polite">0/0</span>
+    <button id="find-prev-button" type="button" aria-label="Previous match" title="Previous match">↑</button>
+    <button id="find-next-button" type="button" aria-label="Next match" title="Next match">↓</button>
+    <button id="find-close-button" type="button" aria-label="Close find" title="Close">×</button>
   </div>
   <div id="editor" contenteditable="true" spellcheck="true"></div>
 
