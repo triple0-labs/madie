@@ -1,6 +1,7 @@
 import { marked } from "marked";
 import mermaid from "mermaid";
 import TurndownService from "turndown";
+import { createSearchController } from "./search";
 
 declare const acquireVsCodeApi: () => {
   postMessage: (msg: unknown) => void;
@@ -163,6 +164,9 @@ function renderMarkdown(md: string): void {
   savedRange = null;
   scheduleMermaidRender();
   updateToolbarState();
+  if (searchController.isOpen()) {
+    searchController.refresh();
+  }
 }
 
 function syncMarkdown(): void {
@@ -592,6 +596,8 @@ function applyHeading(level: string): void {
   updateToolbarState();
 }
 
+const searchController = createSearchController(editor, restoreSelection);
+
 renderMarkdown(initialText);
 
 let lastSentMd = initialText;
@@ -599,6 +605,9 @@ let lastSentMd = initialText;
 editor.addEventListener("input", () => {
   syncMarkdown();
   scheduleMermaidRender();
+  if (searchController.isOpen()) {
+    searchController.refresh();
+  }
 });
 
 document.addEventListener("selectionchange", () => {
@@ -615,6 +624,10 @@ window.addEventListener("message", (event: MessageEvent) => {
     renderMarkdown(message.text);
     lastSentMd = message.text;
   }
+});
+
+document.addEventListener("keydown", (event: KeyboardEvent) => {
+  searchController.handleDocumentKeydown(event);
 });
 
 boldButton.addEventListener("mousedown", (event) => {
