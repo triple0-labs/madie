@@ -3,7 +3,7 @@
   "displayName": "Madie",
   "description": "A customizable markdown text editor that adapts to your theme",
   "icon": "images/icon.png",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "000geid",
   "license": "MIT",
   "repository": {

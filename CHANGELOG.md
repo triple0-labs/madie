@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0] - 2026-05-18
+
+### Added
+
+- Added in-editor find/search support with match highlighting and next/previous navigation.
+
+### Changed
+
+- Mermaid previews now keep the last valid diagram visible when edits temporarily make the diagram invalid.
+- Mermaid preview pan/zoom state is preserved across rerenders.
+- Fixed the extension activation test to resolve the published extension id correctly.
+
 ## [0.1.1] - 2026-04-16
 
 ### Changed
