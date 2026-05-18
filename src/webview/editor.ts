@@ -30,6 +30,28 @@ const strikeButton = document.getElementById("strike-button") as HTMLButtonEleme
 const headingPicker = document.getElementById("heading-picker") as HTMLSelectElement;
 const diagramViewPicker = document.getElementById("diagram-view-picker") as HTMLSelectElement;
 
+interface MermaidPreviewCacheEntry {
+  source: string;
+  svg: string;
+}
+
+interface PanZoomTransform {
+  scale: number;
+  tx: number;
+  ty: number;
+}
+
+function readTransform(svgEl: Element | null): PanZoomTransform {
+  const match = (svgEl as HTMLElement | null)?.style.transform.match(
+    /translate\(([-\d.]+)px,\s*([-\d.]+)px\)\s*scale\(([-\d.]+)\)/
+  );
+  if (match) {
+    return { tx: parseFloat(match[1]), ty: parseFloat(match[2]), scale: parseFloat(match[3]) };
+  }
+
+  return { scale: 1, tx: 0, ty: 0 };
+}
+
 marked.setOptions({ breaks: true });
 
 function getMermaidTheme(): "dark" | "default" {
@@ -57,6 +79,84 @@ new MutationObserver(() => {
 let savedRange: Range | null = null;
 let mermaidRenderTimer: number | undefined;
 let mermaidRenderSerial = 0;
+const mermaidPreviewCache = new Map<number, MermaidPreviewCacheEntry>();
+
+function isMermaidPreviewElement(node: Element | null): node is HTMLDivElement {
+  return !!node && node instanceof HTMLDivElement && node.dataset.mermaidPreview === "true";
+}
+
+function serializeMermaidNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.nodeValue ?? "";
+  }
+
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return "";
+  }
+
+  const element = node as HTMLElement;
+  if (element.tagName === "BR") {
+    return "\n";
+  }
+
+  let text = "";
+  element.childNodes.forEach((childNode) => {
+    text += serializeMermaidNode(childNode);
+  });
+
+  if (/^(DIV|P|LI|TR)$/.test(element.tagName)) {
+    text += "\n";
+  }
+
+  return text;
+}
+
+function getMermaidSource(codeBlock: HTMLElement): string {
+  return Array.from(codeBlock.childNodes)
+    .map((node) => serializeMermaidNode(node))
+    .join("")
+    .replace(/\r\n?/g, "\n");
+}
+
+function normalizeMermaidCodeBlocks(root: ParentNode): void {
+  root.querySelectorAll("pre > code.language-mermaid").forEach((node) => {
+    const codeBlock = node as HTMLElement;
+    codeBlock.textContent = getMermaidSource(codeBlock);
+  });
+}
+
+function clearMermaidError(preview: HTMLDivElement): void {
+  preview.classList.remove("has-error");
+  preview.querySelectorAll("[data-mermaid-error]").forEach((node) => node.remove());
+}
+
+function setMermaidError(preview: HTMLDivElement, message: string): void {
+  let errorNode = preview.querySelector("[data-mermaid-error]") as HTMLDivElement | null;
+  if (!errorNode) {
+    errorNode = document.createElement("div");
+    errorNode.dataset.mermaidError = "true";
+    errorNode.className = "mermaid-error";
+    preview.appendChild(errorNode);
+  }
+
+  errorNode.textContent = message;
+  preview.classList.add("has-error");
+}
+
+function createMermaidPreview(svg: string, initialTransform?: PanZoomTransform): HTMLDivElement {
+  const preview = document.createElement("div");
+  preview.dataset.mermaidPreview = "true";
+  preview.className = "mermaid-preview";
+  preview.setAttribute("contenteditable", "false");
+  preview.innerHTML = svg;
+
+  const svgEl = preview.querySelector("svg");
+  if (svgEl) {
+    attachPanZoom(preview, svgEl, initialTransform);
+  }
+
+  return preview;
+}
 
 function renderMarkdown(md: string): void {
   editor.innerHTML = marked.parse(md) as string;
@@ -67,6 +167,7 @@ function renderMarkdown(md: string): void {
 
 function syncMarkdown(): void {
   const clonedEditor = editor.cloneNode(true) as HTMLDivElement;
+  normalizeMermaidCodeBlocks(clonedEditor);
   clonedEditor.querySelectorAll("[data-mermaid-preview]").forEach((node) => node.remove());
 
   const md = turndown.turndown(clonedEditor.innerHTML);
@@ -162,12 +263,13 @@ function scheduleMermaidRender(): void {
 
 async function renderMermaidPreviews(): Promise<void> {
   const renderSerial = ++mermaidRenderSerial;
-
-  editor.querySelectorAll("[data-mermaid-preview]").forEach((node) => node.remove());
+  const activeIndexes = new Set<number>();
 
   const mermaidBlocks = Array.from(editor.querySelectorAll("pre > code.language-mermaid"));
 
   for (let index = 0; index < mermaidBlocks.length; index += 1) {
+    activeIndexes.add(index);
+
     const codeBlock = mermaidBlocks[index];
     const pre = codeBlock.parentElement;
 
@@ -175,16 +277,18 @@ async function renderMermaidPreviews(): Promise<void> {
       continue;
     }
 
-    const source = codeBlock.textContent ?? "";
+    const source = getMermaidSource(codeBlock as HTMLElement);
     if (!source.trim()) {
+      const existingPreview = isMermaidPreviewElement(pre.nextElementSibling) ? pre.nextElementSibling : null;
+      if (existingPreview) {
+        existingPreview.remove();
+      }
+
+      mermaidPreviewCache.delete(index);
       continue;
     }
 
-    const preview = document.createElement("div");
-    preview.dataset.mermaidPreview = "true";
-    preview.className = "mermaid-preview";
-    preview.setAttribute("contenteditable", "false");
-    pre.insertAdjacentElement("afterend", preview);
+    const existingPreview = isMermaidPreviewElement(pre.nextElementSibling) ? pre.nextElementSibling : null;
 
     const diagramId = `mermaid-${renderSerial}-${index}`;
 
@@ -194,20 +298,56 @@ async function renderMermaidPreviews(): Promise<void> {
         return;
       }
 
-      preview.innerHTML = svg;
-      const svgEl = preview.querySelector("svg");
-      if (svgEl) {
-        attachPanZoom(preview, svgEl);
+      const savedTransform = existingPreview ? readTransform(existingPreview.querySelector("svg")) : undefined;
+      const nextPreview = createMermaidPreview(svg, savedTransform);
+      clearMermaidError(nextPreview);
+
+      if (existingPreview) {
+        existingPreview.replaceWith(nextPreview);
+      } else {
+        pre.insertAdjacentElement("afterend", nextPreview);
       }
+
+      mermaidPreviewCache.set(index, { source, svg });
     } catch (error) {
       if (renderSerial !== mermaidRenderSerial) {
         return;
       }
 
-      preview.innerHTML = "<div class='mermaid-error'>Unable to render Mermaid diagram.</div>";
+      const cachedEntry = mermaidPreviewCache.get(index);
+
+      if (existingPreview) {
+        if (existingPreview.querySelector("svg") === null && cachedEntry) {
+          existingPreview.innerHTML = cachedEntry.svg;
+          const svgEl = existingPreview.querySelector("svg");
+          if (svgEl) {
+            attachPanZoom(existingPreview, svgEl);
+          }
+        }
+
+        setMermaidError(existingPreview, "Unable to render Mermaid diagram. Showing last valid version.");
+      } else if (cachedEntry) {
+        const fallbackPreview = createMermaidPreview(cachedEntry.svg);
+        setMermaidError(fallbackPreview, "Unable to render Mermaid diagram. Showing last valid version.");
+        pre.insertAdjacentElement("afterend", fallbackPreview);
+      } else {
+        const errorPreview = document.createElement("div");
+        errorPreview.dataset.mermaidPreview = "true";
+        errorPreview.className = "mermaid-preview has-error";
+        errorPreview.setAttribute("contenteditable", "false");
+        errorPreview.innerHTML = "<div class='mermaid-error'>Unable to render Mermaid diagram.</div>";
+        pre.insertAdjacentElement("afterend", errorPreview);
+      }
+
       console.error(error);
     }
   }
+
+  mermaidPreviewCache.forEach((_, index) => {
+    if (!activeIndexes.has(index)) {
+      mermaidPreviewCache.delete(index);
+    }
+  });
 }
 
 function openDiagramModal(svgEl: SVGSVGElement | Element): void {
@@ -311,13 +451,17 @@ function openDiagramModal(svgEl: SVGSVGElement | Element): void {
   });
 }
 
-function attachPanZoom(container: HTMLDivElement, svgEl: SVGSVGElement | Element): void {
-  let scale = 1;
-  let tx = 0;
-  let ty = 0;
+function attachPanZoom(container: HTMLDivElement, svgEl: SVGSVGElement | Element, initialTransform?: PanZoomTransform): void {
+  let scale = initialTransform?.scale ?? 1;
+  let tx = initialTransform?.tx ?? 0;
+  let ty = initialTransform?.ty ?? 0;
 
   function applyTransform(): void {
     (svgEl as HTMLElement).style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+
+  if (initialTransform) {
+    applyTransform();
   }
 
   function resetTransform(): void {

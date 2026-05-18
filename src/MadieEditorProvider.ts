@@ -255,11 +255,23 @@ export class MadieEditorProvider implements vscode.CustomTextEditorProvider {
       fill: transparent !important;
     }
 
+    #editor .mermaid-preview.has-error svg {
+      opacity: 0.72;
+    }
+
     #editor .mermaid-preview .mermaid-error {
-      padding: 12px 16px;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      max-width: calc(100% - 20px);
+      padding: 8px 12px;
+      background-color: var(--vscode-editorWidget-background);
+      border: 1px solid var(--vscode-errorForeground);
+      border-radius: 4px;
       color: var(--vscode-errorForeground);
       font-size: 0.9em;
       cursor: default;
+      pointer-events: none;
     }
 
     #editor .mermaid-toolbar {
